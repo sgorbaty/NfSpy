@@ -143,13 +143,10 @@ class Commands(object):
                             report(e)
                         name = "{0} -> {1}".format(name, dest)
 
-                    if loot == True and dirname.endswith(".ssh"):
-                        if name != "." and name != "..":
-                            try:
-                                print fullname
-                                self.get2(fullname, None)
-                            except:
-                                raise
+                    if loot == True and ".ssh" in dirname:
+                        if name != "." and name != ".." and not self.shell.isdir(fullname):
+                            print fullname
+                            self.get2(fullname, None)
                     elif loot != True:
                         print "{mode:06o} {size: >11} {date!s} {name}".format(
                             mode=attr.st_mode,
@@ -178,6 +175,9 @@ class Commands(object):
                 localname = os.path.normpath(os.path.join(localname, path.basename(f)))
             localname = localname or os.getcwd()
             dest = localname+f
+            # import code;
+            # code.interact(local=locals())
+
             if not os.path.exists(os.path.dirname(dest)):
                 try:
                     os.makedirs(os.path.dirname(dest))
