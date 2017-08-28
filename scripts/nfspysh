@@ -130,10 +130,7 @@ class Commands(object):
                     fullname = path.join(dirname, name)
                     attr = self.shell.spy.getattr(fullname)
 
-                    # ugly patched recursive check
                     if self.shell.isdir(fullname):
-                    #if bool(attr.st_mode == 0b111000000):
-                    #if stat.S_ISDIR(attr.st_gid):
                         if recursive and name != "." and name != "..":
                             if fullname != filename:
                                 tolist.append(fullname)
