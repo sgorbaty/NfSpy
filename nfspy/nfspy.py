@@ -304,6 +304,8 @@ class NfSpy(object):
         try:
             handle, fattr = self.gethandle(path)
             fattr = self.ncl.Getattr(handle)
+            # import code;
+            # code.interact(local=locals())
             self.handles[path] = (handle, fattr, time())
         except NFSError as e:
             no = e.errno()
@@ -378,7 +380,7 @@ class NfSpy(object):
                 else:
                     raise IOError(ENOSYS, os.strerror(ENOSYS))
                 nh, nattr, wcc = self.ncl.Mknod(
-                        (handle, name, stype, (mode, fattr[3], fattr[4], None, 
+                        (handle, name, stype, (mode, fattr[3], fattr[4], None,
                             (1,), (1,) ), data)
                         )
         except NFSError as e:
@@ -460,7 +462,7 @@ class NfSpy(object):
         self.authlock.acquire()
         try:
             handle, _ = self.gethandle(dirpath)
-            nh, nattr, wcc = self.ncl.Symlink((handle, name, 
+            nh, nattr, wcc = self.ncl.Symlink((handle, name,
                 (None, self.ncl.fuid, self.ncl.fgid, None, (1,), (1,)),
                 target ))
         except NFSError as e:
@@ -723,4 +725,3 @@ class NfSpy(object):
     #'fsdestroy'
     def fsdestroy(self):
         self.mcl.Umnt(self.path)
-

