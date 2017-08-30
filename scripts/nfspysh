@@ -170,13 +170,17 @@ class Commands(object):
         for i in range(0, len(Commands.filesOrFoldersToLoot)):
             print Commands.filesOrFoldersToLoot[i]
 
-
     def loot(self, targetfilename, localfilename=None):
         """loot <filename> [<localfilename>]
         Uses the target list loaded via lll command, finds them and loots them into <localfilename>.
         If no <localfilename> is given, defaults to current working directory."""
 
-        tolist = list(targetfilename)
+        if not Commands.filesOrFoldersToLoot:
+            print "You have an empty loot list! Use lll command to load the list of regex's to match the file names."
+            return
+
+        tolist = []
+        tolist.insert(0, targetfilename)
 
         while tolist:
             filename = tolist.pop()
