@@ -229,8 +229,6 @@ class Commands(object):
 
             for _,line in lines:
                 if line != "." and line != "..":
-                    # import code;
-                    # code.interact(local=locals())
                     self.get2(path.join(foldername, line), localname)
 
         except IOError as e:
@@ -238,10 +236,13 @@ class Commands(object):
 
 
     def get2(self, filename, localname=None):
-        """get2 <filename> [<localname>]
+        """get2 <filename|foldername> [<localname>]
 
-        Retrieve <filename> and save to <localname> folder.
+        Retrieve <filename|foldername> and save to <localname> folder.
         If no <localname> is given, defaults to the current local working directory."""
+        if self.shell.isdir(filename):
+            return self.getFolder(filename, localname)
+
         f = self.shell.canonicalize(filename)
         size = self.shell.spy.getattr(f).st_size
         if localname=="-":
