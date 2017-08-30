@@ -150,22 +150,29 @@ the tutorial above should work fine. The list of commands can be seen with the
     120777  1000  1000         21 2013-04-13 13:00:24 nmap -> /usr/local/share/nmap
     nfspy@127.0.0.1:/home/miller/nfs:/more> help
     Known commands:
-        cd
-        chmod
-        chown
-        exit
-        get
-        help
-        lcd
-        lpwd
-        ls
-        mkdir
-        mv
-        put
-        pwd
-        rm
-        rmdir
-        umask
+     cat
+     cd
+     chmod
+     chown
+     df
+     exit
+     get
+     get2
+     getFolder
+     help
+     lcd
+     lll
+     loot
+     lpwd
+     ls
+     mkdir
+     mv
+     put
+     pwd
+     rm
+     rmdir
+     shl
+     umask
     nfspy@127.0.0.1:/home/miller/nfs:/more> help get
     get <filename> [<localname>]
     
@@ -173,6 +180,8 @@ the tutorial above should work fine. The list of commands can be seen with the
             defaults to the basename of <filename> in the current local working directory.
     nfspy@127.0.0.1:/home/miller/nfs:/more> exit
     Quitting.
+
+
 
 BUGS
 ----
