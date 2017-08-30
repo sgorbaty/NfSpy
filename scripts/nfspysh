@@ -74,8 +74,10 @@ class Commands(object):
         """cd <dir>
 
         Change remote working directory to <dir>."""
-        self.shell.rcwd = self.shell.canonicalize(directory)
-        self.shell.spy.getattr(self.shell.rcwd)
+        temp = self.shell.canonicalize(directory)
+        if self.shell.isdir(temp):
+            self.shell.rcwd = temp
+            self.shell.spy.getattr(self.shell.rcwd)
 
     def lcd(self, directory):
         """lcd <dir>
