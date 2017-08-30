@@ -304,8 +304,6 @@ class NfSpy(object):
         try:
             handle, fattr = self.gethandle(path)
             fattr = self.ncl.Getattr(handle)
-            # import code;
-            # code.interact(local=locals())
             self.handles[path] = (handle, fattr, time())
         except NFSError as e:
             no = e.errno()
